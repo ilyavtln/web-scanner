@@ -3,10 +3,21 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Random;
 
+import com.opencsv.CSVWriter;
+
+/*
+Для запуска программы в консоли необходимо
+1. Собрать проект - команда: javac -cp "lib/jsoup-1.17.2.jar;lib/opencsv-5.9.jar" src/Main.java -d out
+2. Запустить проект - команда: java -cp "lib/jsoup-1.17.2.jar;lib/opencsv-5.9.jar;out" Main 1 test
+3. Первое значение в параметрах - количество новостей (int)
+4. Второе значение в параметрах - имя выходного файла (String)
+*/
 public class Main {
     // arg1 - (int) количество новостей для скачивания
     // arg2 - (string) имя выходного файла .scv
@@ -59,11 +70,11 @@ public class Main {
             // Получаем HTML-документ со страницы
             Document doc = Jsoup.connect(URL).data("category", "1").data("page", queryStr).userAgent("Mozilla").timeout(getTimeout()).get();
 
-            while (curGetNews < numberToGet ) {
-                // Заголовок страницы
-                String title = doc.title();
-                System.out.println("Title: " + title + "\n");
+            // Заголовок страницы
+            String title = doc.title();
+            System.out.println("Title: " + title + "\n");
 
+            while (curGetNews < numberToGet ) {
                 // Получаем все новости со страницы
                 Elements divs = doc.select("div");
                 // Выбираем карточки новстей
@@ -78,13 +89,14 @@ public class Main {
 
                     // Выводим информацию о новости
                     curGetNews++;
-                    System.out.println("Id: " + curGetNews);
-                    System.out.println("Текст: " + elem.text());
-                    System.out.println("Дата: " + dataElem.text());
+
+                    // Вывод новостей в консоль, при необходимости можно включить
+                    //consoleOut(curGetNews, elem.text(), dataElem.text());
 
                     // Добавляем новость в список
                     newsList.add(new News(elem.text(), dataElem.text()));
 
+                    // Проверяем, что мы не достигли нужного числа новостей
                     if (curGetNews >= numberToGet) {
                         break;
                     }
@@ -94,10 +106,14 @@ public class Main {
                 queryNum++;
                 queryStr = Integer.toString(queryNum);
 
-                // Получаем HTML-документ со страницы
+                // Получаем HTML-документ с новой страницы
                 doc = Jsoup.connect(URL).data("category", "1").data("page", queryStr).userAgent("Mozilla").timeout(getTimeout()).get();
             }
-        } catch (IOException e) {
+
+            // Вызов функции для вывода новостей в файл
+            output(newsList, fileName, title);
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -106,9 +122,10 @@ public class Main {
         // Генерируем случайное число для таймаута
         Random random = new Random();
 
-        return random.nextInt(1000) + 1000;
+        return Math.abs(random.nextInt(5000) + 2000);
     }
 
+    // Класс для хранения информации о новостях
     private static class News {
         private final String text;
         private final String date;
@@ -124,6 +141,44 @@ public class Main {
 
         public String getDate() {
             return date;
+        }
+    }
+
+    // Функция для вывода новостей в консоль
+    private static void consoleOut(int id, String text, String data) {
+        System.out.println("Id: " + id);
+        System.out.println("Дата: " + data);
+        System.out.println("Текст: " + text);
+        System.out.println("\n");
+    }
+
+    // Функция для вывода новостей в файл .csv
+    private static void output(ArrayList<News> newsList, String file, String title) {
+        // Добавляем к имени файла его расширение
+        String fileName = file + ".csv";
+        // Пытаемся записать данные в файл
+        try (CSVWriter writer = new CSVWriter(new FileWriter(fileName, StandardCharsets.UTF_8))) {
+            // Добавляем заголовок страницы в начало файла
+            String[] titleArray = {title};
+            // Записываем заголовок в файл
+            writer.writeNext(titleArray);
+            // Записываем заголовки
+            String[] header = {"id", "Дата", "Текст"};
+            writer.writeNext(header);
+            // Записываем данные
+            for (int i = 0; i < newsList.size(); i++) {
+                // Достаем по 1й новости из массива
+                News news = newsList.get(i);
+                // Добавляем в массив данные, которые необходимо записать
+                String[] data = {Integer.toString(i + 1), news.getDate(), news.getText()};
+                // Записываем в файл
+                writer.writeNext(data);
+            }
+            System.out.println("Данные успешно записаны в файл " + fileName);
+        }
+        catch (IOException e) {
+            System.err.println("Ошибка при записи в файл " + fileName);
+            e.printStackTrace();
         }
     }
 }
