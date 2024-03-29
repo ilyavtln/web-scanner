@@ -3,7 +3,7 @@ import java.io.IOException;
 /*
 Для запуска программы в консоли необходимо
 1. Собрать проект - команда:
-javac -cp "lib/jsoup-1.17.2.jar;lib/opencsv-5.9.jar" src/News.java src/Scrapper.java src/Main.java -d out
+javac -cp "lib/jsoup-1.17.2.jar;lib/opencsv-5.9.jar" src/News.java src/Scrapper.java src/Output.java src/Main.java -d out
 2. Запустить проект - команда:
 java -cp "lib/jsoup-1.17.2.jar;lib/opencsv-5.9.jar;out" Main 10 test
 3. Первое значение в параметрах - количество новостей (int)
@@ -48,7 +48,10 @@ public class Main {
         // Определяем ссылку, с которой будем брать новости
         String URL = "https://zabgu.ru/php/news.php";
 
-        Scrapper newsDownloader = new Scrapper(numberToGet, fileName);
+        Scrapper newsDownloader = new Scrapper(numberToGet);
         newsDownloader.downloadNews(URL);
+
+        Output output = new Output();
+        output.toFile(fileName, newsDownloader.getNewsList(), newsDownloader.getTitle());
     }
 }

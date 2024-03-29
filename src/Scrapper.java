@@ -1,29 +1,26 @@
-import com.opencsv.CSVWriter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class Scrapper {
     private final int numberToGet;
-    private final String fileName;
+    // Массив для хранения данных из новостей
+    ArrayList<News> newsList = new ArrayList<>();
+    // Title страницы
+    String title;
 
     // Получаем через конструктор число новостей и имя файла
-    public Scrapper(int numberToGet, String fileName) {
+    public Scrapper(int numberToGet) {
         this.numberToGet = numberToGet;
-        this.fileName = fileName;
     }
 
     // Основная функция класса, которая получает и сохраняет новости в файл
     public void downloadNews(String URL) {
-        // Массив для хранения данных из новостей
-        ArrayList<News> newsList = new ArrayList<>();
         // Создаем текущую переменную, которая будет хранить полученное число новостей
         int curGetNews = 0;
 
@@ -40,7 +37,7 @@ public class Scrapper {
             Document doc = Jsoup.connect(URL).data("category", "1").data("page", queryStr).userAgent("Mozilla").timeout(getTimeout()).get();
 
             // Заголовок страницы
-            String title = doc.title();
+            title = doc.title();
 
             // Выводим ссылку на сайт и его заголовок
             System.out.println("\n" + "Новости с сайта " + URL);
@@ -88,8 +85,6 @@ public class Scrapper {
                 doc = Jsoup.connect(URL).data("category", "1").data("page", queryStr).userAgent("Mozilla").timeout(getTimeout()).get();
             }
 
-            // Вызов функции для вывода новостей в файл
-            output(newsList, fileName, title);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -111,33 +106,11 @@ public class Scrapper {
         System.out.println("\n");
     }
 
-    // Функция для вывода новостей в файл .csv
-    private static void output(ArrayList<News> newsList, String file, String title) {
-        // Добавляем к имени файла его расширение
-        String fileName = file + ".csv";
-        // Пытаемся записать данные в файл
-        try (CSVWriter writer = new CSVWriter(new FileWriter(fileName, StandardCharsets.UTF_8))) {
-            // Добавляем заголовок страницы в начало файла
-            String[] titleArray = {title};
-            // Записываем заголовок в файл
-            writer.writeNext(titleArray);
-            // Записываем заголовки
-            String[] header = {"id", "Дата", "Текст"};
-            writer.writeNext(header);
-            // Записываем данные
-            for (int i = 0; i < newsList.size(); i++) {
-                // Достаем по 1й новости из массива
-                News news = newsList.get(i);
-                // Добавляем в массив данные, которые необходимо записать
-                String[] data = {Integer.toString(i + 1), news.getDate(), news.getText()};
-                // Записываем в файл
-                writer.writeNext(data);
-            }
-            System.out.println("Данные успешно записаны в файл " + fileName);
-        }
-        catch (IOException e) {
-            System.err.println("Ошибка при записи в файл " + fileName);
-            e.printStackTrace();
-        }
+    public ArrayList<News> getNewsList() {
+        return newsList;
+    }
+
+    public String getTitle() {
+        return title;
     }
 }
